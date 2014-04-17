@@ -1,0 +1,198 @@
+#!/bin/sh
+#
+# run-backup - Backup script using rdiff-backup
+#
+# Copyright (c) 2014 Roland Seubert
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, inclUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+author_name="Roland Seubert"
+copyright_year="2014"
+prog_name="$(basename "$0")"
+version="0.1"
+
+help_msg="Usage: ${prog_name} [-c] [-h] [-v] [-i DIR] [-e DIR] [-d DIR]
+
+Options:
+  -c  Run interactive configuration and exit
+  -d  Destination directory
+  -e  Exclude files and directories
+  -h  Display this help message and exit
+  -i  Include files and directories
+  -v  Display version information and exit
+
+For complete documentation, see file README"
+
+config_file="${HOME}/.${prog_name}.conf"
+config_template="# ${prog_name} - configuration file
+
+# Files and directories included in the backup
+include=%s
+
+# Files and directories excluded from the backup
+exclude=%s
+
+# Destination directory
+destination=%s"
+
+# Interactive configuration
+run_config()
+{
+    printf "Included files and directories%s: " "${incl:+" [${incl}]"}"
+    read incl_new
+    incl="${incl_new:-"$incl"}"
+    printf "Excluded files and directories%s: " "${excl:+" [${excl}]"}"
+    read excl_new
+    excl="${excl_new:-"$excl"}"
+    printf "Destination directory%s: " "${dest:+" [${dest}]"}"
+    read dest_new
+    dest="${dest_new:-"$dest"}"
+    if [ -f "$1" ]
+    then
+        mv -f "$1" "${1}.bak"
+    fi
+    printf "${config_template}\n" "$incl" "$excl" "$dest" >"$1" 2>&1
+}
+
+# Read config file
+if [ -f "$config_file" ]
+then
+    while read line
+    do
+        if [ "$(printf "$line" | cut -c 1)" = "#" ]
+        then
+            continue
+        fi
+        key="$(printf "$line" | sed -n 's/^\([a-z]\+\)=.\+$/\1/p')"
+        value="$(printf "$line" | sed -n 's/^[a-z]\+=\(.\+\)$/\1/p')"
+        case "$key" in
+            destination)
+                dest="$value"
+                ;;
+            exclude)
+                excl="$value"
+                ;;
+            include)
+                incl="$value"
+                ;;
+        esac
+    done < "$config_file"
+fi
+
+# Process command-line options
+while getopts ":cd:e:hi:v" OPTS
+do
+    case "$OPTS" in
+        c)
+            run_config "$config_file" && printf "Configuration successful\n"
+            exit 0
+            ;;
+        d)
+            dest="$OPTARG"
+            ;;
+        e)
+            excl="$OPTARG"
+            ;;
+        h)
+            printf "%s\n" "$help_msg"
+            exit 0
+            ;;
+        i)
+            incl="$OPTARG"
+            ;;
+        v)
+            printf "%s %s\nCopyright (c) %s %s\n" \
+                "$prog_name" "$version" "$copyright_year" "$author_name"
+            exit 0
+            ;;
+        :)
+            printf "Option %s requires an argument\n" "-$OPTARG" >&2
+            exit 1
+            ;;
+        \?)
+            printf "Unknown option: %s\n" "-$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Check inputs
+if [ -z "$incl" ]
+then
+    printf "No files or directories specified for backup\n" >&2
+    exit 1
+elif [ -z "$dest" ]
+then
+    printf "No destination specified for backup\n" >&2
+    exit 1
+elif [ ! -d "$dest" ]
+then
+    while [ "$choice" != "y" -a "$choice" != "Y" ]
+    do
+        printf "Destination does not exist and will be created [Y/n]: "
+        read choice
+        choice="${choice:-"y"}"
+        if [ "$choice" = "n" -o "$choice" = "N" ]
+        then
+            printf "Aborting backup\n"
+            exit 0
+        fi
+    done
+elif [ -d "$dest" -a ! -w "$dest" ]
+then
+    printf "No write permission at destination\n" >&2
+    exit 1
+fi
+
+# Create temporary directory
+temp_dir="${TMPDIR:-"/tmp"}/${prog_name}-$(cat /dev/urandom | \
+    tr -cd [:alnum:] | head -c 16)"
+if [ -d "$temp_dir" ]
+then
+    printf "Could not create temporary directory\n" >&2
+    exit 1
+fi
+mkdir -m 0700 "$temp_dir"
+
+# Process included and excluded directories
+dir_list="- ${dest}\n"
+OLD_IFS="$IFS"
+IFS=":"
+if [ -n "$excl" ]
+then
+    for dir in $excl
+    do
+        dir_list="${dir_list}- ${dir}\n"
+    done
+fi
+for dir in $incl
+do
+    dir_list="${dir_list}+ ${dir}\n"
+done
+IFS="$OLD_IFS"
+dir_list="${dir_list}- **\n"
+printf %b "$dir_list" >"${temp_dir}/dir.list" 2>&1
+
+# Run backup
+rdiff-backup \
+    --print-statistics \
+    --include-globbing-filelist "${temp_dir}/dir.list" \
+    / \
+    "${dest}"
+
