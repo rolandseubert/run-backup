@@ -128,8 +128,15 @@ do
             fi
             ;;
         r)
-            rm_incr "$OPTARG" && printf "Increment successfully deleted\n"
-            exit 0
+            if [ -n "$dest" ]
+            then
+                rdiff-backup --remove-older-than "$OPTARG" "$dest" && \
+                    printf "Increment successfully deleted\n"
+                exit 0
+            else
+                printf "No destination specified for removal\n" >&2
+                exit 1
+            fi
             ;;
         v)
             printf "%s %s\nCopyright (c) %s %s\n" \
