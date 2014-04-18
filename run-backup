@@ -97,7 +97,7 @@ then
 fi
 
 # Process command-line options
-while getopts ":cd:e:hi:lv" OPTS
+while getopts ":cd:e:hi:lr:v" OPTS
 do
     case "$OPTS" in
         c)
@@ -126,6 +126,10 @@ do
                 printf "No destination specified for lookup\n" >&2
                 exit 1
             fi
+            ;;
+        r)
+            rm_incr "$OPTARG" && printf "Increment successfully deleted\n"
+            exit 0
             ;;
         v)
             printf "%s %s\nCopyright (c) %s %s\n" \
