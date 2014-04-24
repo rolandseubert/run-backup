@@ -71,6 +71,18 @@ run_config()
     printf "${config_template}\n" "$incl" "$excl" "$dest" >"$1" 2>&1
 }
 
+# Spinning animation
+display_spinner()
+{
+    interval='0.1s'
+    spinner='|/-\'
+    for pos in 1 2 3 4
+    do
+        printf "\b$(expr substr "$spinner" "$pos" 1)"
+        sleep "$interval"
+    done
+}
+
 # Read config file
 if [ -f "$config_file" ]
 then
