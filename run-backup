@@ -74,12 +74,15 @@ run_config()
 # Spinning animation
 display_spinner()
 {
-    interval='0.1s'
+    interval="0.1s"
     spinner='|/-\'
-    for pos in 1 2 3 4
+    while :
     do
-        printf "\b$(expr substr "$spinner" "$pos" 1)"
-        sleep "$interval"
+        for pos in 1 2 3 4
+        do
+            printf "\b$(expr substr "$spinner" "$pos" 1)"
+            sleep "$interval"
+        done
     done
 }
 
@@ -224,9 +227,15 @@ dir_list="${dir_list}- **\n"
 printf %b "$dir_list" >"${temp_dir}/dir.list" 2>&1
 
 # Run backup
+printf "Running backup ...  "
+display_spinner &
+spinner_pid="$!"
 rdiff-backup \
     --print-statistics \
     --include-globbing-filelist "${temp_dir}/dir.list" \
     / \
     "${dest}"
+kill "$spinner_pid" && printf "\bDone\n"
+trap 'kill "$spinner_pid"' SIGTERM
+exit 0
 
