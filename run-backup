@@ -230,12 +230,11 @@ printf %b "$dir_list" >"${temp_dir}/dir.list" 2>&1
 printf "Running backup ...  "
 display_spinner &
 spinner_pid="$!"
+trap 'kill "$spinner_pid"' TERM
 rdiff-backup \
-    --print-statistics \
     --include-globbing-filelist "${temp_dir}/dir.list" \
     / \
     "${dest}"
 kill "$spinner_pid" && printf "\bDone\n"
-trap 'kill "$spinner_pid"' SIGTERM
 exit 0
 
