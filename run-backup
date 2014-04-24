@@ -25,7 +25,7 @@
 author_name="Roland Seubert"
 copyright_year="2014"
 prog_name="$(basename "$0")"
-version="0.2"
+version="0.3"
 
 help_msg="Usage: ${prog_name} [-c] [-h] [-v] [-i DIR] [-e DIR] [-d DIR]
 
