@@ -24,8 +24,8 @@
 
 author_name="Roland Seubert"
 copyright_year="2014"
-logfile="${HOME}/.${prog_name}.log"
 prog_name="$(basename "$0")"
+logfile="${HOME}/.${prog_name}.log"
 version="0.5"
 
 help_msg="Usage: ${prog_name} [-c] [-h] [-v] [-i DIR] [-e DIR] [-d DIR]
