@@ -24,6 +24,7 @@
 
 author_name="Roland Seubert"
 copyright_year="2014"
+logfile="${HOME}/.${prog_name}.log"
 prog_name="$(basename "$0")"
 version="0.3"
 
@@ -234,7 +235,7 @@ trap 'kill "$spinner_pid"' TERM
 rdiff-backup \
     --include-globbing-filelist "${temp_dir}/dir.list" \
     / \
-    "${dest}"
+    "${dest}" >"$logfile"
 kill "$spinner_pid" && printf "\bDone\n"
 exit 0
 
