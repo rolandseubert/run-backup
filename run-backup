@@ -57,9 +57,8 @@ destination=%s"
 # Create temporary directory
 mktempdir()
 {
-    defaulttmp="${TMPDIR:-"/tmp"}"
     suffix="$(cat /dev/urandom | tr -cd [:alnum:] | head -c 16)"
-    tempdir="${defaulttmp}/${1}-${suffix}"
+    tempdir="${TMPDIR:-"/tmp"}/${1}-${suffix}"
     if [ -d "$tempdir" ]
     then
         printf "Could not create temporary directory\n" >&2
@@ -70,43 +69,9 @@ mktempdir()
     fi
 }
 
-# Run interactive configuration
-runconfig()
-{
-    printf "Included files and directories%s: " "${incl:+" [${incl}]"}"
-    read incl_update
-    incl="${incl_update:-"$incl"}"
-    printf "Excluded files and directories%s: " "${excl:+" [${excl}]"}"
-    read excl_update
-    excl="${excl_update:-"$excl"}"
-    printf "Destination directory%s: " "${dest:+" [${dest}]"}"
-    read dest_update
-    dest="${dest_update:-"$dest"}"
-    if [ -f "$1" ]
-    then
-        mv -f "$1" "${1}.bak"
-    fi
-    printf "${configtemplate}\n" "$incl" "$excl" "$dest" >"$1" 2>&1
-}
-
-# Display spinning animation
-spin()
-{
-    interval="0.1s"
-    steps='|/-\'
-    while :
-    do
-        for pos in 1 2 3 4
-        do
-            printf "\b$(expr substr "$steps" "$pos" 1)"
-            sleep "$interval"
-        done
-    done
-}
-
 # Read config file
-if [ -f "$configfile" ]
-then
+readconf()
+{
     while read line
     do
         if [ "$(printf "$line" | cut -c 1)" = "#" ]
@@ -126,7 +91,47 @@ then
                 incl="$value"
                 ;;
         esac
-    done < "$configfile"
+    done < "$1"
+}
+
+# Display spinning animation
+spin()
+{
+    interval="0.1s"
+    steps='|/-\'
+    while :
+    do
+        for pos in 1 2 3 4
+        do
+            printf "\b$(expr substr "$steps" "$pos" 1)"
+            sleep "$interval"
+        done
+    done
+}
+
+# Write config file
+writeconf()
+{
+    printf "Included files and directories%s: " "${incl:+" [${incl}]"}"
+    read incl_update
+    incl="${incl_update:-"$incl"}"
+    printf "Excluded files and directories%s: " "${excl:+" [${excl}]"}"
+    read excl_update
+    excl="${excl_update:-"$excl"}"
+    printf "Destination directory%s: " "${dest:+" [${dest}]"}"
+    read dest_update
+    dest="${dest_update:-"$dest"}"
+    if [ -f "$1" ]
+    then
+        mv -f "$1" "${1}.bak"
+    fi
+    printf "${configtemplate}\n" "$incl" "$excl" "$dest" >"$1" 2>&1
+}
+
+# Read configuration if found
+if [ -f "$configfile" ]
+then
+    readconf "$configfile"
 fi
 
 # Process command-line options
@@ -134,7 +139,7 @@ while getopts ":cd:e:hi:lr:v" OPTS
 do
     case "$OPTS" in
         c)
-            runconfig "$configfile" && printf "Configuration successful\n"
+            writeconf "$configfile" && printf "Configuration successful\n"
             exit 0
             ;;
         d)
