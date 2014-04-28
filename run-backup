@@ -54,9 +54,15 @@ exclude=%s
 # Destination directory
 destination=%s"
 
-# Create temporary directory
 mktempdir()
 {
+    # Creates a temporary directory in TMPDIR
+    #
+    # Arguments:
+    #   Basename of temporary directory (default: none)
+    #
+    # Return values:
+    #   Full path of temporary directory
     suffix="$(cat /dev/urandom | tr -cd [:alnum:] | head -c 16)"
     tempdir="${TMPDIR:-"/tmp"}/${1}-${suffix}"
     if [ -d "$tempdir" ]
@@ -69,9 +75,15 @@ mktempdir()
     fi
 }
 
-# Read config file
 readconf()
 {
+    # Reads the configuration file and assigns values to variables
+    #
+    # Arguments:
+    #   Full path and name of configuration file (default: none)
+    #
+    # Return values:
+    #   None
     while read line
     do
         if [ "$(printf "$line" | cut -c 1)" = "#" ]
@@ -94,9 +106,15 @@ readconf()
     done < "$1"
 }
 
-# Display spinning animation
-spin()
+spinner()
 {
+    # Displays a spinning bar animation
+    #
+    # Arguments:
+    #   None
+    #
+    # Return values:
+    #   None
     interval="0.1s"
     steps='|/-\'
     while :
@@ -109,9 +127,15 @@ spin()
     done
 }
 
-# Write config file
 writeconf()
 {
+    # Interactively writes configuration to file
+    #
+    # Arguments:
+    #   Full path and name of configuration file (default: none)
+    #
+    # Return values:
+    #   None
     printf "Included files and directories%s: " "${incl:+" [${incl}]"}"
     read incl_update
     incl="${incl_update:-"$incl"}"
@@ -127,6 +151,8 @@ writeconf()
     fi
     printf "${configtemplate}\n" "$incl" "$excl" "$dest" >"$1" 2>&1
 }
+
+printf "Backup started by %s on %s\n" "$USER" "$(date)" >"$logfile" 2>&1
 
 # Read configuration if found
 if [ -f "$configfile" ]
@@ -242,13 +268,13 @@ printf %b "$dirlist" >"${tempdir}/dir.list" 2>&1
 
 # Run backup
 printf "Running backup ...  "
-spin &
+spinner &
 pid="$!"
 trap 'kill "$pid"' TERM
 rdiff-backup \
     --include-globbing-filelist "${tempdir}/dir.list" \
     / \
     "${dest}" >"$logfile" 2>"$logfile"
-kill "$pid" && printf "\bDone\n"
+kill "$pid" && printf "\bdone\n"
 exit 0
 
