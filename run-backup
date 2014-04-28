@@ -54,40 +54,6 @@ exclude=%s
 # Destination directory
 destination=%s"
 
-# Interactive configuration
-run_config()
-{
-    printf "Included files and directories%s: " "${incl:+" [${incl}]"}"
-    read incl_new
-    incl="${incl_new:-"$incl"}"
-    printf "Excluded files and directories%s: " "${excl:+" [${excl}]"}"
-    read excl_new
-    excl="${excl_new:-"$excl"}"
-    printf "Destination directory%s: " "${dest:+" [${dest}]"}"
-    read dest_new
-    dest="${dest_new:-"$dest"}"
-    if [ -f "$1" ]
-    then
-        mv -f "$1" "${1}.bak"
-    fi
-    printf "${configtemplate}\n" "$incl" "$excl" "$dest" >"$1" 2>&1
-}
-
-# Spinning animation
-display_spinner()
-{
-    interval="0.1s"
-    steps='|/-\'
-    while :
-    do
-        for pos in 1 2 3 4
-        do
-            printf "\b$(expr substr "$steps" "$pos" 1)"
-            sleep "$interval"
-        done
-    done
-}
-
 # Create temporary directory
 mktempdir()
 {
@@ -102,6 +68,40 @@ mktempdir()
         (umask 077 && mkdir "$tempdir")
         printf "$tempdir"
     fi
+}
+
+# Run interactive configuration
+runconfig()
+{
+    printf "Included files and directories%s: " "${incl:+" [${incl}]"}"
+    read incl_update
+    incl="${incl_update:-"$incl"}"
+    printf "Excluded files and directories%s: " "${excl:+" [${excl}]"}"
+    read excl_update
+    excl="${excl_update:-"$excl"}"
+    printf "Destination directory%s: " "${dest:+" [${dest}]"}"
+    read dest_update
+    dest="${dest_update:-"$dest"}"
+    if [ -f "$1" ]
+    then
+        mv -f "$1" "${1}.bak"
+    fi
+    printf "${configtemplate}\n" "$incl" "$excl" "$dest" >"$1" 2>&1
+}
+
+# Display spinning animation
+spin()
+{
+    interval="0.1s"
+    steps='|/-\'
+    while :
+    do
+        for pos in 1 2 3 4
+        do
+            printf "\b$(expr substr "$steps" "$pos" 1)"
+            sleep "$interval"
+        done
+    done
 }
 
 # Read config file
@@ -134,7 +134,7 @@ while getopts ":cd:e:hi:lr:v" OPTS
 do
     case "$OPTS" in
         c)
-            run_config "$configfile" && printf "Configuration successful\n"
+            runconfig "$configfile" && printf "Configuration successful\n"
             exit 0
             ;;
         d)
@@ -237,7 +237,7 @@ printf %b "$dirlist" >"${tempdir}/dir.list" 2>&1
 
 # Run backup
 printf "Running backup ...  "
-display_spinner &
+spin &
 pid="$!"
 trap 'kill "$pid"' TERM
 rdiff-backup \
