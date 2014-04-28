@@ -22,13 +22,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-author_name="Roland Seubert"
-copyright_year="2014"
-prog_name="$(basename "$0")"
-logfile="${HOME}/.${prog_name}.log"
+author="Roland Seubert"
+year="2014"
 version="0.7"
 
-help_msg="Usage: ${prog_name} [-c] [-h] [-v] [-i DIR] [-e DIR] [-d DIR]
+progname="$(basename "$0")"
+configfile="${HOME}/.${progname}.conf"
+logfile="${HOME}/.${progname}.log"
+
+helpmsg="Usage: ${progname} [-c] [-h] [-v] [-i DIR] [-e DIR] [-d DIR]
 
 Options:
   -c  Run interactive configuration and exit
@@ -41,8 +43,7 @@ Options:
 
 For complete documentation, see file README"
 
-config_file="${HOME}/.${prog_name}.conf"
-config_template="# ${prog_name} - configuration file
+configtemplate="# ${progname} - configuration file
 
 # Files and directories included in the backup
 include=%s
@@ -69,26 +70,26 @@ run_config()
     then
         mv -f "$1" "${1}.bak"
     fi
-    printf "${config_template}\n" "$incl" "$excl" "$dest" >"$1" 2>&1
+    printf "${configtemplate}\n" "$incl" "$excl" "$dest" >"$1" 2>&1
 }
 
 # Spinning animation
 display_spinner()
 {
     interval="0.1s"
-    spinner='|/-\'
+    steps='|/-\'
     while :
     do
         for pos in 1 2 3 4
         do
-            printf "\b$(expr substr "$spinner" "$pos" 1)"
+            printf "\b$(expr substr "$steps" "$pos" 1)"
             sleep "$interval"
         done
     done
 }
 
 # Read config file
-if [ -f "$config_file" ]
+if [ -f "$configfile" ]
 then
     while read line
     do
@@ -109,7 +110,7 @@ then
                 incl="$value"
                 ;;
         esac
-    done < "$config_file"
+    done < "$configfile"
 fi
 
 # Process command-line options
@@ -117,7 +118,7 @@ while getopts ":cd:e:hi:lr:v" OPTS
 do
     case "$OPTS" in
         c)
-            run_config "$config_file" && printf "Configuration successful\n"
+            run_config "$configfile" && printf "Configuration successful\n"
             exit 0
             ;;
         d)
@@ -127,7 +128,7 @@ do
             excl="$OPTARG"
             ;;
         h)
-            printf "%s\n" "$help_msg"
+            printf "%s\n" "$helpmsg"
             exit 0
             ;;
         i)
@@ -156,7 +157,7 @@ do
             ;;
         v)
             printf "%s %s\nCopyright (c) %s %s\n" \
-                "$prog_name" "$version" "$copyright_year" "$author_name"
+                "$progname" "$version" "$year" "$author"
             exit 0
             ;;
         :)
@@ -199,43 +200,43 @@ then
 fi
 
 # Create temporary directory
-temp_dir="${TMPDIR:-"/tmp"}/${prog_name}-$(cat /dev/urandom | \
+tempdir="${TMPDIR:-"/tmp"}/${progname}-$(cat /dev/urandom | \
     tr -cd [:alnum:] | head -c 16)"
-if [ -d "$temp_dir" ]
+if [ -d "$tempdir" ]
 then
     printf "Could not create temporary directory\n" >&2
     exit 1
 fi
-mkdir -m 0700 "$temp_dir"
+mkdir -m 0700 "$tempdir"
 
 # Process included and excluded directories
-dir_list="- ${dest}\n"
-OLD_IFS="$IFS"
+dirlist="- ${dest}\n"
+TMPIFS="$IFS"
 IFS=":"
 if [ -n "$excl" ]
 then
     for dir in $excl
     do
-        dir_list="${dir_list}- ${dir}\n"
+        dirlist="${dirlist}- ${dir}\n"
     done
 fi
 for dir in $incl
 do
-    dir_list="${dir_list}+ ${dir}\n"
+    dirlist="${dirlist}+ ${dir}\n"
 done
-IFS="$OLD_IFS"
-dir_list="${dir_list}- **\n"
-printf %b "$dir_list" >"${temp_dir}/dir.list" 2>&1
+IFS="$TMPIFS"
+dirlist="${dirlist}- **\n"
+printf %b "$dirlist" >"${tempdir}/dir.list" 2>&1
 
 # Run backup
 printf "Running backup ...  "
 display_spinner &
-spinner_pid="$!"
-trap 'kill "$spinner_pid"' TERM
+pid="$!"
+trap 'kill "$pid"' TERM
 rdiff-backup \
-    --include-globbing-filelist "${temp_dir}/dir.list" \
+    --include-globbing-filelist "${tempdir}/dir.list" \
     / \
     "${dest}" >"$logfile" 2>"$logfile"
-kill "$spinner_pid" && printf "\bDone\n"
+kill "$pid" && printf "\bDone\n"
 exit 0
 
