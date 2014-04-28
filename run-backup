@@ -30,19 +30,6 @@ progname="$(basename "$0")"
 configfile="${HOME}/.${progname}.conf"
 logfile="${HOME}/.${progname}.log"
 
-helpmsg="Usage: ${progname} [-c] [-h] [-v] [-i DIR] [-e DIR] [-d DIR]
-
-Options:
-  -c  Run interactive configuration and exit
-  -d  Destination directory
-  -e  Exclude files and directories
-  -h  Display this help message and exit
-  -i  Include files and directories
-  -l  List previous backup increments and exit
-  -v  Display version information and exit
-
-For complete documentation, see file README"
-
 configtemplate="# ${progname} - configuration file
 
 # Files and directories included in the backup
@@ -53,6 +40,31 @@ exclude=%s
 
 # Destination directory
 destination=%s"
+
+helpmsg()
+{
+    # Prints a help message to stdout
+    #
+    # Arguments:
+    #   Script name
+    #
+    # Return values:
+    #   Help message
+    cat <<-EOF
+	Usage: "${1}" [-c] [-h] [-v] [-i DIR] [-e DIR] [-d DIR]
+
+	Options:
+	  -c  Run interactive configuration and exit
+	  -d  Destination directory
+	  -e  Exclude files and directories
+	  -h  Display this help message and exit
+	  -i  Include files and directories
+	  -l  List previous backup increments and exit
+	  -v  Display version information and exit
+
+	For complete documentation, see file README
+	EOF
+}
 
 mktempdir()
 {
@@ -175,7 +187,7 @@ do
             excl="$OPTARG"
             ;;
         h)
-            printf "%s\n" "$helpmsg"
+            helpmsg "${progname}"
             exit 0
             ;;
         i)
