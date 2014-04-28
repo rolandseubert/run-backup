@@ -88,6 +88,22 @@ display_spinner()
     done
 }
 
+# Create temporary directory
+mktempdir()
+{
+    defaulttmp="${TMPDIR:-"/tmp"}"
+    suffix="$(cat /dev/urandom | tr -cd [:alnum:] | head -c 16)"
+    tempdir="${defaulttmp}/${1}-${suffix}"
+    if [ -d "$tempdir" ]
+    then
+        printf "Could not create temporary directory\n" >&2
+        exit 1
+    else
+        (umask 077 && mkdir "$tempdir")
+        printf "$tempdir"
+    fi
+}
+
 # Read config file
 if [ -f "$configfile" ]
 then
@@ -199,16 +215,6 @@ then
     exit 1
 fi
 
-# Create temporary directory
-tempdir="${TMPDIR:-"/tmp"}/${progname}-$(cat /dev/urandom | \
-    tr -cd [:alnum:] | head -c 16)"
-if [ -d "$tempdir" ]
-then
-    printf "Could not create temporary directory\n" >&2
-    exit 1
-fi
-mkdir -m 0700 "$tempdir"
-
 # Process included and excluded directories
 dirlist="- ${dest}\n"
 TMPIFS="$IFS"
@@ -226,6 +232,7 @@ do
 done
 IFS="$TMPIFS"
 dirlist="${dirlist}- **\n"
+tempdir="$(mktempdir "${progname}")"
 printf %b "$dirlist" >"${tempdir}/dir.list" 2>&1
 
 # Run backup
