@@ -244,7 +244,8 @@ do
         l)
             if [ -n "$dest" ]
             then
-                rdiff-backup --list-increments "$dest"
+                tempdir="$(mktempdir "$progname")"
+                lsinc "$dest" "$tempdir"
                 exit 0
             else
                 printf "No destination specified for lookup\n" >&2
