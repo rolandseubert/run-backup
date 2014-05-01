@@ -166,7 +166,7 @@ readconf()
     done < "$1"
 }
 
-spinner()
+busy()
 {
     # Displays a spinning bar animation
     #
