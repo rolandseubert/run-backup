@@ -330,13 +330,10 @@ printf %b "$dirlist" >"${tempdir}/dir.list" 2>&1
 
 # Run backup
 printf "Running backup ...  "
-spinner &
-pid="$!"
-trap 'kill "$pid"' TERM
 rdiff-backup \
     --include-globbing-filelist "${tempdir}/dir.list" \
     / \
-    "${dest}" >"$logfile" 2>"$logfile"
-kill "$pid" && printf "\bdone\n"
+    "${dest}" >"$logfile" 2>"$logfile" & busy "$!"
+printf "\bdone\n"
 exit 0
 
