@@ -171,20 +171,21 @@ spinner()
     # Displays a spinning bar animation
     #
     # Arguments:
-    #   None
+    #   Process ID of background action
     #
     # Return values:
-    #   None
-    interval="0.1s"
+    #   Spinning bar animation
+    setterm -cursor off
     steps='|/-\'
-    while :
+    while kill -0 "$1" 2>/dev/null
     do
         for pos in 1 2 3 4
         do
-            printf "\b$(expr substr "$steps" "$pos" 1)"
-            sleep "$interval"
+            printf "\b%s" "$(expr substr "$steps" "$pos" 1)"
+            sleep .15
         done
     done
+    setterm -cursor on
 }
 
 writeconf()
